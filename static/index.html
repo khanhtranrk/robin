@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>robin</title>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/showdown/2.1.0/showdown.min.js"></script>
+    <style>
+      body {background-color: #000000; color: #ffffff}
+      pre {overflow-x: auto;}
+      code {
+        font-family: Consolas,"courier new"; color: #dc143c;
+        background-color: #202020;
+        padding: 2px;
+        font-size: 105%;
+      }
+
+      .header {
+        border-bottom: 2px solid #dc143c;
+      }
+
+      .title {
+        margin: 0;
+        padding: 0;
+      }
+
+      .footer {
+        border-top: 2px solid #dc143c;
+        padding: 8px;
+      }
+
+      .navi-item {
+        margin: 0 4px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="header" class="header"></div>
+    <div id="content"></div>
+    <div class="footer">
+      <a class="navi-item" href="/">Home</a>
+    </div>
+    <script>
+      let header = document.getElementById("header");
+      let content = document.getElementById("content");
+
+      if (window.location.pathname === '/') {
+        buildHomePage().catch((e) => buildErrorPage(e));
+      } else {
+        buildPostPage().catch((e) => buildErrorPage(e));
+      }
+
+      async function buildHomePage() {
+        // fetch data
+        let resp = await fetch("https://api.github.com/repos/khanhtranrk/robin-posts/contents"),
+          respJson = await resp.json();
+
+        let html = "<ul>";
+        respJson.forEach(post => {
+          html += "<li><a href='" + window.location.href + post.path.substring(0, post.name.length - 3) + "'>" + post.name.substring(0, post.name.length - 3) + "</a></li>";
+        });
+        html += "</ul>";
+
+        document.title = "robin";
+        header.innerHTML = `
+          <div style="display: flex; flex-direction: row; padding: 8px 0;">
+            <img style="height: 200px; width: 200px;" src="${window.location.origin + "/assets/robin-icon"}"/>
+            <div style="flex: 1; padding: 0 8px; height: 200px;">
+              <p style="color: #dc143c">Welcome to my site! This is a website that I created to showcase some of the topics that I have explored. It contains articles that reflect my interests.</p>
+            </div>
+          </div>
+        `;
+        content.innerHTML = html;
+      }
+
+      function b64DecodeUnicode(str) {
+        return decodeURIComponent(atob(str).split('').map(function(c) {
+          return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+        }).join(''));
+      }
+
+      async function buildPostPage() {
+        let filePath = encodeURIComponent(decodeURIComponent(window.location.href.replace(window.location.origin + '/', "") + ".md"));
+
+        // fetch data
+        let resp = await fetch("https://api.github.com/repos/khanhtranrk/robin-posts/contents/" + filePath);
+          respJson = await resp.json(),
+          fileName = respJson.name,
+          fileContent = b64DecodeUnicode(respJson.content);
+
+        // hanlde data
+        let converter = new showdown.Converter(),
+          text = fileContent,
+          html = converter.makeHtml(text);
+
+
+        document.title = fileName.substring(0, fileName.length - 3);
+        header.innerHTML = "<p class='title' style='color: #dc143c;'>" + fileName.substring(0, fileName.length - 3) + "</p>";
+        content.innerHTML = html;
+      }
+
+      async function buildErrorPage(e) {
+        document.title = "Error";
+        header.innerHTML = "<p class='title'>Error</p>";
+        content.innerHTML = "<p>Something went wrong!</p>";
+      }
+    </script>
+  </body>
+</html>
+
